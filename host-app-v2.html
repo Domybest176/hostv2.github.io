@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>ChargeMate Host — จัดการ Wallbox</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --g:#00C896;--gd:#00A07A;--gp:#E6FBF5;
+  --ink:#0D1117;--ink2:#1A2A1F;--ink3:#2D3748;
+  --mu:#64748B;--mu2:#94A3B8;--mu3:#CBD5E1;
+  --s:#F8FAFC;--s2:#F1F5F9;--s3:#E2E8F0;
+  --w:#FFFFFF;--am:#F59E0B;--rd:#EF4444;--bl:#3B82F6;
+  --r8:8px;--r12:12px;--r16:16px;--r24:24px;
+  --sh:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
+  --sidebar:240px;--topbar:56px;--bn:60px;
+}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:#0F1F14;color:var(--ink);overflow:hidden}
+.app{display:flex;height:100vh;width:100vw;overflow:hidden}
+
+/* ── Sidebar ── */
+.sidebar{width:var(--sidebar);flex-shrink:0;background:#0F1F14;display:flex;flex-direction:column;border-right:1px solid rgba(0,200,150,.1);transition:transform .3s}
+.sb-logo{padding:20px 18px 16px;border-bottom:1px solid rgba(0,200,150,.1)}
+.sb-brand{display:flex;align-items:center;gap:10px}
+.sb-bolt{width:34px;height:34px;background:var(--g);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sb-bolt svg{width:18px;height:18px}
+.sb-name{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#fff;letter-spacing:-.2px}
+.sb-role{font-size:10px;background:rgba(0,200,150,.2);color:var(--g);padding:1px 7px;border-radius:20px;display:inline-block;font-weight:600;margin-top:1px}
+.sb-nav{padding:14px 10px;flex:1;overflow-y:auto}
+.nav-sec{font-size:10px;font-weight:600;color:rgba(0,200,150,.4);letter-spacing:.08em;padding:0 8px;margin:14px 0 5px;text-transform:uppercase}
+.nav-sec:first-child{margin-top:0}
+.ni{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--r8);cursor:pointer;color:rgba(255,255,255,.4);font-size:13px;font-weight:500;transition:all .15s;margin-bottom:1px;border:none;background:none;width:100%;text-align:left}
+.ni:hover{background:rgba(0,200,150,.08);color:rgba(255,255,255,.85)}
+.ni.active{background:rgba(0,200,150,.15);color:var(--g)}
+.ni svg{width:16px;height:16px;flex-shrink:0}
+.sb-footer{padding:12px 10px;border-top:1px solid rgba(0,200,150,.1)}
+.user-row{display:flex;align-items:center;gap:10px;padding:8px;border-radius:var(--r8);cursor:pointer;transition:background .15s}
+.user-row:hover{background:rgba(255,255,255,.04)}
+.u-av{width:32px;height:32px;border-radius:50%;background:var(--gp);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--gd);flex-shrink:0}
+.u-name{font-size:12px;font-weight:500;color:rgba(255,255,255,.75);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.u-sub{font-size:10px;color:rgba(255,255,255,.3)}
+.sb-driver-link{margin:8px 10px 0;padding:9px 10px;border-radius:var(--r8);background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:8px;cursor:pointer;text-decoration:none;transition:all .15s}
+.sb-driver-link:hover{background:rgba(255,255,255,.09)}
+.sb-driver-link span{font-size:12px;font-weight:600;color:rgba(255,255,255,.6)}
+.sb-driver-link svg{width:14px;height:14px;color:rgba(255,255,255,.4);flex-shrink:0}
+
+/* ── Main ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--s);min-width:0}
+.topbar{height:var(--topbar);background:var(--w);border-bottom:1px solid var(--s3);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0}
+.topbar-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--ink);flex:1}
+.menu-btn{display:none;width:34px;height:34px;border-radius:var(--r8);border:1px solid var(--s3);background:var(--w);align-items:center;justify-content:center;cursor:pointer;color:var(--mu);flex-shrink:0}
+.ib{width:34px;height:34px;border-radius:var(--r8);border:1px solid var(--s3);background:var(--w);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mu);transition:all .15s;position:relative;flex-shrink:0}
+.ib:hover{border-color:var(--g);color:var(--g)}
+.ndot{position:absolute;top:6px;right:6px;width:6px;height:6px;background:var(--rd);border-radius:50%;border:1.5px solid var(--w)}
+.btn-solid{padding:9px 16px;border-radius:var(--r8);border:none;background:var(--g);color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn-solid:hover{background:var(--gd)}
+.btn-line{padding:8px 14px;border-radius:var(--r8);border:1.5px solid var(--s3);background:var(--w);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;color:var(--ink)}
+
+.content{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.page{display:none;flex:1;overflow:hidden;min-height:0}
+.page.active{display:flex;flex-direction:column}
+.inner{padding:20px;overflow-y:auto;flex:1;background:var(--s);-webkit-overflow-scrolling:touch}
+
+/* ── KPIs ── */
+.pg-hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.pg-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--ink)}
+.pg-sub{font-size:12px;color:var(--mu);margin-top:2px}
+.hd-acts{display:flex;gap:8px;flex-wrap:wrap}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.kpi{background:var(--w);border-radius:var(--r16);padding:16px;border:1px solid var(--s3);position:relative;overflow:hidden}
+.kpi-acc{position:absolute;top:0;left:0;right:0;height:3px}
+.kpi-ico{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.kpi-ico svg{width:13px;height:13px}
+.kpi-lab{font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.kpi-val{font-family:'DM Sans',sans-serif;font-size:24px;font-weight:600;color:var(--ink);line-height:1;margin-bottom:4px}
+.kpi-ch{font-size:11px;font-weight:500}
+.up{color:#16A34A}.dn{color:var(--rd)}.neu{color:var(--mu)}
+
+/* ── Cards ── */
+.card{background:var(--w);border-radius:var(--r16);border:1px solid var(--s3);overflow:hidden;margin-bottom:14px}
+.card-hd{padding:14px 16px;border-bottom:1px solid var(--s3);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.card-title{font-size:14px;font-weight:600;color:var(--ink)}
+.card-act{font-size:12px;color:var(--g);cursor:pointer;font-weight:500}
+
+/* Bar chart */
+.barchart{display:flex;align-items:flex-end;gap:8px;height:100px;padding:0 2px}
+.bc-g{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+.bc-v{font-size:9px;font-weight:600;color:var(--ink3)}
+.bc-b{width:100%;border-radius:4px 4px 0 0;min-height:4px;transition:height .4s ease,opacity .2s}
+.bc-b:hover{filter:brightness(1.1)}
+.bc-l{font-size:10px;color:var(--mu)}
+.dash-2col{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;margin-bottom:14px}
+
+/* Wallbox row */
+.wb-row{padding:14px 16px;border-bottom:1px solid var(--s3);display:flex;gap:12px;align-items:center}
+.wb-row:last-child{border-bottom:none}
+.wb-ic{width:42px;height:42px;border-radius:var(--r12);background:var(--gp);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.wb-ic svg{width:22px;height:22px;color:var(--gd)}
+.wb-info{flex:1;min-width:0}
+.wb-name{font-size:13px;font-weight:600;color:var(--ink)}
+.wb-meta{font-size:11px;color:var(--mu);margin-top:2px}
+.wb-kpis{display:flex;gap:14px;margin-top:7px}
+.wkv{font-size:12px;font-weight:700;color:var(--ink)}
+.wkl{font-size:10px;color:var(--mu)}
+.toggle{width:42px;height:24px;border-radius:20px;position:relative;cursor:pointer;transition:background .2s;border:none;flex-shrink:0}
+.toggle.on{background:var(--g)}.toggle.off{background:var(--s3)}
+.tknob{position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle.on .tknob{left:21px}.toggle.off .tknob{left:3px}
+
+/* Booking rows */
+.bk-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--s3)}
+.bk-row:last-child{border-bottom:none}
+.bk-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
+.bk-info{flex:1}
+.bk-name{font-size:13px;font-weight:600;color:var(--ink)}
+.bk-meta{font-size:11px;color:var(--mu);margin-top:1px}
+.bk-right{text-align:right;flex-shrink:0}
+.bk-amt{font-size:13px;font-weight:700;color:var(--gd)}
+.badge{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px}
+.bg{background:#DCFCE7;color:#15803D}.br{background:#FEE2E2;color:#DC2626}.ba{background:#FEF3C7;color:#D97706}.bb{background:#DBEAFE;color:#2563EB}
+
+/* Review */
+.rv-row{padding:12px 16px;border-bottom:1px solid var(--s3)}
+.rv-row:last-child{border-bottom:none}
+.rv-top{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.rv-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600}
+.rv-name{font-size:12px;font-weight:600;color:var(--ink)}
+.rv-date{font-size:10px;color:var(--mu)}
+.rv-stars{color:var(--am);font-size:11px;margin-left:auto}
+.rv-txt{font-size:12px;color:var(--mu);line-height:1.6}
+
+/* Earnings */
+.earn-row{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--s3)}
+.earn-row:last-child{border-bottom:none}
+.earn-ic{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+
+/* Settings / Wallbox manage */
+.wb-detail{padding:16px}
+.wb-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.wbs{background:var(--s);border-radius:var(--r8);padding:10px;text-align:center}
+.wbs-val{font-size:15px;font-weight:700;color:var(--ink)}
+.wbs-lab{font-size:10px;color:var(--mu);margin-top:2px}
+.price-input{display:flex;align-items:center;gap:8px;background:var(--s);border-radius:var(--r8);padding:10px 12px;margin-bottom:10px}
+.pi-label{font-size:12px;color:var(--mu);flex:1}
+.pi-val{font-size:15px;font-weight:700;color:var(--g);cursor:pointer}
+.wb-acts{display:flex;gap:8px;flex-wrap:wrap}
+.wb-act-btn{padding:8px 14px;border-radius:var(--r8);border:1.5px solid var(--s3);background:var(--w);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;color:var(--ink);transition:all .15s;flex:1;text-align:center;white-space:nowrap}
+.wb-act-btn:hover{border-color:var(--g);color:var(--g)}
+
+/* Bottom nav */
+.bottom-nav{display:none;background:#0F1F14;border-top:1px solid rgba(0,200,150,.1);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px)}
+.bn-items{display:flex;height:60px}
+.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:rgba(255,255,255,.35);border:none;background:none;transition:color .15s;padding:8px 0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.bn-item.active{color:var(--g)}
+.bn-item svg{width:20px;height:20px;pointer-events:none}
+.bn-label{font-size:10px;font-weight:500;pointer-events:none}
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.anim{animation:fadeUp .25s ease both}
+.ad1{animation-delay:.05s}.ad2{animation-delay:.1s}.ad3{animation-delay:.15s}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:var(--s3);border-radius:10px}
+
+@media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.dash-2col{grid-template-columns:1fr}}
+@media(max-width:768px){
+  .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:200;transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .sb-overlay.show{display:block}
+  .menu-btn{display:flex}
+  .bottom-nav{display:block}
+  .main{padding-bottom:0}
+  .inner{padding:14px}
+  .kpi-grid{grid-template-columns:repeat(2,1fr);gap:8px}
+  .kpi-val{font-size:20px}
+  .dash-2col{grid-template-columns:1fr}
+  .wb-stats{grid-template-columns:repeat(2,1fr)}
+  .hd-acts .btn-solid{font-size:12px;padding:7px 12px}
+  .btn-solid{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+}
+@media(max-width:480px){
+  .topbar{padding:0 12px}
+  .kpi-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .wb-acts{flex-direction:column}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="sb-overlay" id="sbo" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sb-logo">
+    <div class="sb-brand">
+      <div class="sb-bolt"><svg viewBox="0 0 24 24" fill="white"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+      <div>
+        <div class="sb-name">ChargeMate</div>
+        <div><span class="sb-role">Host Dashboard</span></div>
+      </div>
+    </div>
+  </div>
+  <nav class="sb-nav">
+    <div class="nav-sec">จัดการ</div>
+    <button class="ni active" onclick="goPage('dash');closeSidebar()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>ภาพรวม Dashboard
+    </button>
+    <button class="ni" onclick="goPage('wallbox');closeSidebar()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="16 2 12 7 8 2"/></svg>จัดการ Wallbox
+    </button>
+    <button class="ni" onclick="goPage('bookings');closeSidebar()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>การจอง
+      <span style="margin-left:auto;background:var(--g);color:var(--ink);font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px">3</span>
+    </button>
+    <button class="ni" onclick="goPage('earnings');closeSidebar()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>รายได้ &amp; ถอนเงิน
+    </button>
+    <div class="nav-sec">รีวิว</div>
+    <button class="ni" onclick="goPage('reviews');closeSidebar()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>รีวิวทั้งหมด
+    </button>
+  </nav>
+  <div class="sb-footer">
+    <a class="sb-driver-link" href="user-app.html" target="_blank">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <span>สลับไปยัง Driver App →</span>
+    </a>
+    <div class="user-row" style="margin-top:6px">
+      <div class="u-av">วช</div>
+      <div><div class="u-name">วิชัย สมใจ</div><div class="u-sub">Verified Host · ⭐ 4.9</div></div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <header class="topbar">
+    <button class="menu-btn" id="menu-btn" onclick="openSidebar()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="topbar-title" id="pg-title">ภาพรวม Dashboard</div>
+    <div class="ib">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <div class="ndot"></div>
+    </div>
+    <button class="btn-solid" onclick="goPage('wallbox')">+ เพิ่ม Wallbox</button>
+  </header>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="pg-dash">
+      <div class="inner">
+        <div class="pg-hd anim">
+          <div><div class="pg-title">สวัสดีครับ คุณวิชัย 👋</div><div class="pg-sub">อัปเดตล่าสุด: วันนี้ 14:32 · Wallbox 2 เครื่องทำงานปกติ</div></div>
+          <div class="hd-acts"><button class="btn-line">ส่งออกรายงาน</button><button class="btn-solid" onclick="goPage('wallbox')">+ เพิ่ม Wallbox</button></div>
+        </div>
+
+        <div class="kpi-grid anim ad1">
+          <div class="kpi">
+            <div class="kpi-acc" style="background:var(--g)"></div>
+            <div class="kpi-ico" style="background:var(--gp)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--gd)" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+            <div class="kpi-lab">รายได้เดือนนี้</div>
+            <div class="kpi-val" style="color:var(--g)">฿3,420</div>
+            <div class="kpi-ch up">↑ +18% จากเดือนก่อน</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-acc" style="background:var(--bl)"></div>
+            <div class="kpi-ico" style="background:#DBEAFE"><svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+            <div class="kpi-lab">เซสชันทั้งหมด</div>
+            <div class="kpi-val">47</div>
+            <div class="kpi-ch up">↑ +12 จากเดือนก่อน</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-acc" style="background:var(--am)"></div>
+            <div class="kpi-ico" style="background:#FEF3C7"><svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+            <div class="kpi-lab">พลังงานจ่าย</div>
+            <div class="kpi-val">612 <span style="font-size:14px;font-weight:400">kWh</span></div>
+            <div class="kpi-ch up">↑ +89 kWh</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-acc" style="background:var(--am)"></div>
+            <div class="kpi-ico" style="background:#FEF3C7"><svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+            <div class="kpi-lab">คะแนนเฉลี่ย</div>
+            <div class="kpi-val">4.9 <span style="font-size:14px;font-weight:400">/5</span></div>
+            <div class="kpi-ch up">↑ จาก 4.7</div>
+          </div>
+        </div>
+
+        <div class="dash-2col anim ad2">
+          <div class="card">
+            <div class="card-hd"><div class="card-title">รายได้รายวัน (7 วันล่าสุด)</div><div class="card-act">ดูทั้งหมด</div></div>
+            <div style="padding:14px 16px">
+              <div class="barchart">
+                <div class="bc-g"><div class="bc-v">฿380</div><div class="bc-b" style="height:52px;background:var(--g);opacity:.65"></div><div class="bc-l">จ</div></div>
+                <div class="bc-g"><div class="bc-v">฿210</div><div class="bc-b" style="height:29px;background:var(--g);opacity:.65"></div><div class="bc-l">อ</div></div>
+                <div class="bc-g"><div class="bc-v">฿490</div><div class="bc-b" style="height:68px;background:var(--g);opacity:.75"></div><div class="bc-l">พ</div></div>
+                <div class="bc-g"><div class="bc-v">฿320</div><div class="bc-b" style="height:44px;background:var(--g);opacity:.65"></div><div class="bc-l">พฤ</div></div>
+                <div class="bc-g"><div class="bc-v">฿540</div><div class="bc-b" style="height:75px;background:var(--g)"></div><div class="bc-l">ศ</div></div>
+                <div class="bc-g"><div class="bc-v" style="color:var(--mu2)">—</div><div class="bc-b" style="height:6px;background:var(--s3)"></div><div class="bc-l">ส</div></div>
+                <div class="bc-g"><div class="bc-v" style="color:var(--mu2)">—</div><div class="bc-b" style="height:6px;background:var(--s3)"></div><div class="bc-l">อา</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-hd"><div class="card-title">การจองวันนี้</div><span class="badge bg">3 รายการ</span></div>
+            <div class="bk-row">
+              <div class="bk-av" style="background:#E6F1FB;color:#1D4ED8">สม</div>
+              <div class="bk-info"><div class="bk-name">สมชาย ใจดี</div><div class="bk-meta">Tesla Model 3 · 12:00–14:00</div></div>
+              <div class="bk-right"><div class="bk-amt">฿135–198</div><span class="badge bg" style="font-size:9px">ชาร์จอยู่</span></div>
+            </div>
+            <div class="bk-row">
+              <div class="bk-av" style="background:#FEF3C7;color:#92400E">นิ</div>
+              <div class="bk-info"><div class="bk-name">นิภา วงศ์สุวรรณ</div><div class="bk-meta">BYD Atto 3 · 14:00–16:00</div></div>
+              <div class="bk-right"><div class="bk-amt">฿90–135</div><span class="badge ba" style="font-size:9px">รอ</span></div>
+            </div>
+            <div class="bk-row">
+              <div class="bk-av" style="background:#FCE7F3;color:#9D174D">ธน</div>
+              <div class="bk-info"><div class="bk-name">ธนพล รักดี</div><div class="bk-meta">MG ZS EV · 17:00–19:00</div></div>
+              <div class="bk-right"><div class="bk-amt">฿90–135</div><span class="badge ba" style="font-size:9px">รอ</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card anim ad3">
+          <div class="card-hd"><div class="card-title">สถานะ Wallbox</div><div class="card-act" onclick="goPage('wallbox')">จัดการทั้งหมด →</div></div>
+          <div class="wb-row">
+            <div class="wb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="16 2 12 7 8 2"/></svg></div>
+            <div class="wb-info">
+              <div class="wb-name">Wallbox Pulsar Plus — ที่จอด A</div>
+              <div class="wb-meta">Type 2 · 22 kW · ชาร์จอยู่: สมชาย ใจดี</div>
+              <div class="wb-kpis">
+                <div><div class="wkv" style="color:var(--g)">กำลังชาร์จ</div><div class="wkl">สถานะ</div></div>
+                <div><div class="wkv">฿4.50</div><div class="wkl">ราคา/kWh</div></div>
+                <div><div class="wkv">08–20น.</div><div class="wkl">เปิดรับ</div></div>
+              </div>
+            </div>
+            <button class="toggle on" onclick="this.classList.toggle('on');this.classList.toggle('off')"><div class="tknob"></div></button>
+          </div>
+          <div class="wb-row">
+            <div class="wb-ic" style="background:#FEF3C7"><svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="16 2 12 7 8 2"/></svg></div>
+            <div class="wb-info">
+              <div class="wb-name">Wallbox Copper SB — ที่จอด B</div>
+              <div class="wb-meta">Type 2 · 7.4 kW · ว่าง</div>
+              <div class="wb-kpis">
+                <div><div class="wkv" style="color:var(--mu)">ว่าง</div><div class="wkl">สถานะ</div></div>
+                <div><div class="wkv">฿4.50</div><div class="wkl">ราคา/kWh</div></div>
+                <div><div class="wkv">08–22น.</div><div class="wkl">เปิดรับ</div></div>
+              </div>
+            </div>
+            <button class="toggle on" onclick="this.classList.toggle('on');this.classList.toggle('off')"><div class="tknob"></div></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WALLBOX -->
+    <div class="page" id="pg-wallbox">
+      <div class="inner">
+        <div class="pg-hd anim"><div><div class="pg-title">จัดการ Wallbox</div><div class="pg-sub">Wallbox ทั้งหมด 2 เครื่อง</div></div><button class="btn-solid">+ เพิ่ม Wallbox ใหม่</button></div>
+        <div class="card anim ad1">
+          <div class="card-hd"><div class="card-title">Wallbox Pulsar Plus — ที่จอด A</div><span class="badge bg">กำลังทำงาน</span></div>
+          <div class="wb-detail">
+            <div class="wb-stats">
+              <div class="wbs"><div class="wbs-val">22 kW</div><div class="wbs-lab">พลังงาน</div></div>
+              <div class="wbs"><div class="wbs-val">Type 2</div><div class="wbs-lab">Connector</div></div>
+              <div class="wbs"><div class="wbs-val" style="color:var(--g)">OCPP 1.6</div><div class="wbs-lab">Protocol</div></div>
+              <div class="wbs"><div class="wbs-val">Online</div><div class="wbs-lab">การเชื่อมต่อ</div></div>
+            </div>
+            <div class="price-input">
+              <span class="pi-label">ราคาต่อ kWh</span>
+              <span class="pi-val" onclick="editPrice(this)">฿4.50 ✏️</span>
+            </div>
+            <div class="price-input">
+              <span class="pi-label">ช่วงเวลาที่เปิดรับ</span>
+              <span class="pi-val">08:00 – 20:00 ✏️</span>
+            </div>
+            <div class="wb-acts">
+              <button class="wb-act-btn">แก้ไขราคา</button>
+              <button class="wb-act-btn">ตั้งเวลา</button>
+              <button class="wb-act-btn">ดู QR Code</button>
+              <button class="wb-act-btn">รีสตาร์ท</button>
+            </div>
+          </div>
+        </div>
+        <div class="card anim ad2">
+          <div class="card-hd"><div class="card-title">Wallbox Copper SB — ที่จอด B</div><span class="badge bb">ว่าง</span></div>
+          <div class="wb-detail">
+            <div class="wb-stats">
+              <div class="wbs"><div class="wbs-val">7.4 kW</div><div class="wbs-lab">พลังงาน</div></div>
+              <div class="wbs"><div class="wbs-val">Type 2</div><div class="wbs-lab">Connector</div></div>
+              <div class="wbs"><div class="wbs-val" style="color:var(--g)">OCPP 2.0</div><div class="wbs-lab">Protocol</div></div>
+              <div class="wbs"><div class="wbs-val">Online</div><div class="wbs-lab">การเชื่อมต่อ</div></div>
+            </div>
+            <div class="price-input"><span class="pi-label">ราคาต่อ kWh</span><span class="pi-val">฿4.50 ✏️</span></div>
+            <div class="price-input"><span class="pi-label">ช่วงเวลาที่เปิดรับ</span><span class="pi-val">08:00 – 22:00 ✏️</span></div>
+            <div class="wb-acts">
+              <button class="wb-act-btn">แก้ไขราคา</button>
+              <button class="wb-act-btn">ตั้งเวลา</button>
+              <button class="wb-act-btn">ดู QR Code</button>
+              <button class="wb-act-btn">รีสตาร์ท</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOOKINGS -->
+    <div class="page" id="pg-bookings">
+      <div class="inner">
+        <div class="pg-hd anim"><div><div class="pg-title">การจองทั้งหมด</div><div class="pg-sub">วันนี้ 20 มี.ค. 2026 — 3 รายการ</div></div><button class="btn-line">ส่งออก</button></div>
+        <div class="card anim ad1">
+          <div class="card-hd"><div class="card-title">วันนี้</div><span class="badge bg">3 รายการ</span></div>
+          <div class="bk-row">
+            <div class="bk-av" style="background:#E6F1FB;color:#1D4ED8">สม</div>
+            <div class="bk-info"><div class="bk-name">สมชาย ใจดี</div><div class="bk-meta">Tesla Model 3 · Wallbox A · 12:00–14:00</div></div>
+            <div class="bk-right"><div class="bk-amt">฿135–198</div><span class="badge bg">ชาร์จอยู่</span></div>
+          </div>
+          <div class="bk-row">
+            <div class="bk-av" style="background:#FEF3C7;color:#92400E">นิ</div>
+            <div class="bk-info"><div class="bk-name">นิภา วงศ์สุวรรณ</div><div class="bk-meta">BYD Atto 3 · Wallbox A · 14:00–16:00</div></div>
+            <div class="bk-right"><div class="bk-amt">฿90–135</div><span class="badge ba">รอ</span></div>
+          </div>
+          <div class="bk-row">
+            <div class="bk-av" style="background:#FCE7F3;color:#9D174D">ธน</div>
+            <div class="bk-info"><div class="bk-name">ธนพล รักดี</div><div class="bk-meta">MG ZS EV · Wallbox B · 17:00–19:00</div></div>
+            <div class="bk-right"><div class="bk-amt">฿90–135</div><span class="badge ba">รอ</span></div>
+          </div>
+        </div>
+        <div class="card anim ad2">
+          <div class="card-hd"><div class="card-title">เมื่อวาน</div></div>
+          <div class="bk-row">
+            <div class="bk-av" style="background:#DCFCE7;color:#15803D">อ</div>
+            <div class="bk-info"><div class="bk-name">อาทิตย์ สมศรี</div><div class="bk-meta">Ora Good Cat · Wallbox B · 09:00–11:00</div></div>
+            <div class="bk-right"><div class="bk-amt">฿88</div><span class="badge bg">สำเร็จ</span></div>
+          </div>
+          <div class="bk-row">
+            <div class="bk-av" style="background:#E6F1FB;color:#1D4ED8">ก</div>
+            <div class="bk-info"><div class="bk-name">กนกวรรณ รัตนชัย</div><div class="bk-meta">Tesla Model Y · Wallbox A · 13:00–16:00</div></div>
+            <div class="bk-right"><div class="bk-amt">฿198</div><span class="badge bg">สำเร็จ</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EARNINGS -->
+    <div class="page" id="pg-earnings">
+      <div class="inner">
+        <div class="pg-hd anim"><div><div class="pg-title">รายได้ &amp; ถอนเงิน</div><div class="pg-sub">ยอดพร้อมถอน ฿2,736</div></div><button class="btn-solid">ถอนเงิน ฿2,736</button></div>
+        <div class="kpi-grid anim ad1">
+          <div class="kpi"><div class="kpi-acc" style="background:var(--g)"></div><div class="kpi-lab">รายได้รวม (เดือนนี้)</div><div class="kpi-val" style="color:var(--g)">฿3,420</div><div class="kpi-ch up">↑ +18%</div></div>
+          <div class="kpi"><div class="kpi-acc" style="background:var(--am)"></div><div class="kpi-lab">ค่าธรรมเนียม (20%)</div><div class="kpi-val">฿684</div><div class="kpi-ch neu">แพลตฟอร์ม</div></div>
+          <div class="kpi"><div class="kpi-acc" style="background:var(--bl)"></div><div class="kpi-lab">รายได้สุทธิ</div><div class="kpi-val">฿2,736</div><div class="kpi-ch up">พร้อมถอน</div></div>
+          <div class="kpi"><div class="kpi-acc" style="background:var(--g)"></div><div class="kpi-lab">ถอนแล้ว (ก.พ.)</div><div class="kpi-val">฿2,311</div><div class="kpi-ch neu">ภายใน 1 วัน</div></div>
+        </div>
+        <div class="card anim ad2">
+          <div class="card-hd"><div class="card-title">ประวัติการโอน</div></div>
+          <div class="earn-row"><div class="earn-ic">✅</div><div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--ink)">โอนเงินเข้า SCB ****4521</div><div style="font-size:11px;color:var(--mu)">28 ก.พ. 2026</div></div><div style="text-align:right"><div style="font-size:13px;font-weight:700;color:var(--gd)">฿2,311</div><span class="badge bg" style="font-size:9px">สำเร็จ</span></div></div>
+          <div class="earn-row"><div class="earn-ic">✅</div><div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--ink)">โอนเงินเข้า SCB ****4521</div><div style="font-size:11px;color:var(--mu)">31 ม.ค. 2026</div></div><div style="text-align:right"><div style="font-size:13px;font-weight:700;color:var(--gd)">฿1,890</div><span class="badge bg" style="font-size:9px">สำเร็จ</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REVIEWS -->
+    <div class="page" id="pg-reviews">
+      <div class="inner">
+        <div class="pg-hd anim"><div><div class="pg-title">รีวิวทั้งหมด</div><div class="pg-sub">47 รีวิว · คะแนนเฉลี่ย ⭐ 4.9/5</div></div></div>
+        <div class="card anim ad1">
+          <div class="card-hd"><div class="card-title">ล่าสุด</div></div>
+          <div class="rv-row">
+            <div class="rv-top"><div class="rv-av" style="background:#E6F1FB;color:#1D4ED8">สม</div><div><div class="rv-name">สมชาย ใจดี</div><div class="rv-date">18 มี.ค. 2026</div></div><div class="rv-stars">★★★★★</div></div>
+            <div class="rv-txt">ชาร์จได้เร็ว ที่จอดสะอาดดีมาก เจ้าของบ้านใจดีมากๆ ครับ จะมาใช้อีกแน่นอน</div>
+          </div>
+          <div class="rv-row">
+            <div class="rv-top"><div class="rv-av" style="background:#FCE7F3;color:#9D174D">นิ</div><div><div class="rv-name">นิภา วงศ์สุวรรณ</div><div class="rv-date">15 มี.ค. 2026</div></div><div class="rv-stars">★★★★★</div></div>
+            <div class="rv-txt">สะดวกมาก ระบบ QR ใช้งานง่าย ชาร์จได้ครบตามที่จอง แนะนำเลยค่ะ</div>
+          </div>
+          <div class="rv-row">
+            <div class="rv-top"><div class="rv-av" style="background:#FEF3C7;color:#92400E">ก</div><div><div class="rv-name">กนกวรรณ รัตนชัย</div><div class="rv-date">13 มี.ค. 2026</div></div><div class="rv-stars">★★★★☆</div></div>
+            <div class="rv-txt">ดีนะครับ แต่ที่จอดรถหายากนิดนึง นอกนั้นโอเคมาก</div>
+          </div>
+          <div class="rv-row">
+            <div class="rv-top"><div class="rv-av" style="background:#DCFCE7;color:#15803D">อ</div><div><div class="rv-name">อาทิตย์ สมศรี</div><div class="rv-date">10 มี.ค. 2026</div></div><div class="rv-stars">★★★★★</div></div>
+            <div class="rv-txt">เยี่ยมเลยครับ ราคาถูกกว่าสถานีสาธารณะ ชาร์จ 2 ชั่วโมงครึ่ง แบตจาก 20% ถึง 90%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- content -->
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <div class="bn-items">
+      <button class="bn-item active" onclick="goPage('dash')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span class="bn-label">ภาพรวม</span>
+      </button>
+      <button class="bn-item" onclick="goPage('wallbox')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="16 2 12 7 8 2"/></svg>
+        <span class="bn-label">Wallbox</span>
+      </button>
+      <button class="bn-item" onclick="goPage('bookings')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span class="bn-label">การจอง</span>
+      </button>
+      <button class="bn-item" onclick="goPage('earnings')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span class="bn-label">รายได้</span>
+      </button>
+    </div>
+  </nav>
+</main>
+</div>
+
+<script>
+const TITLES={dash:'ภาพรวม Dashboard',wallbox:'จัดการ Wallbox',bookings:'การจองทั้งหมด',earnings:'รายได้ & ถอนเงิน',reviews:'รีวิวทั้งหมด'};
+function goPage(n){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.ni,.bn-item').forEach(b=>b.classList.remove('active'));
+  const pg=document.getElementById('pg-'+n);if(pg)pg.classList.add('active');
+  document.getElementById('pg-title').textContent=TITLES[n]||n;
+  document.querySelectorAll('.ni,.bn-item').forEach(b=>{if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+n+"'"))b.classList.add('active');});
+}
+function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('sbo').classList.add('show');}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sbo').classList.remove('show');}
+function editPrice(el){const v=prompt('ตั้งราคาใหม่ (฿/kWh):',el.textContent.replace(' ✏️',''));if(v)el.textContent=v+' ✏️';}
+</script>
+</body>
+</html>
